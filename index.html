@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Wheel of Fortune Bingo</title>
+    
+    <style type="text/css">
+        body {
+        font-family: 'Alatsi', sans-serif;
+        margin: 0;
+        overflow: hidden;
+        background: black;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .title {
+        font-size: 10vw;
+        color: white;
+        }
+
+        canvas {
+        width: 100%;
+        }
+
+    text{
+        font-size:20px;
+        pointer-events:none;
+        font-family: 'Alatsi', sans-serif;
+    }
+    #chart{
+        width:700px;
+        height:700px;
+        margin-left: 34%;
+    }
+    #Nagrada{
+        width:100%;
+        height:100%;
+        top:30%;
+    }
+    #Nagrada h1{
+        text-align: center;
+        font-size: 50px;
+        font-weight: bold;
+        font-family: 'Alatsi', sans-serif;
+        color: white;
+        padding: 0;
+    }
+    
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div id="chart"></div>
+        <div id="Nagrada"><h1></h1></div>
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script type="text/javascript" charset="utf-8">
+        var padding = {top:20, right:40, bottom:0, left:0},
+            w = 560 - padding.left - padding.right,
+            h = 560 - padding.top  - padding.bottom,
+            r = Math.min(w, h)/2,
+            rotation = 0,
+            oldrotation = 0,
+            picked = 100000,
+            oldpick = [];
+            color = d3.scale.category20c();//category20c()
+            //randomNumbers = getRandomNumbers();
+
+        //http://osric.com/bingo-card-generator/?title=HTML+and+CSS+BINGO!&words=padding%2Cfont-family%2Ccolor%2Cfont-weight%2Cfont-size%2Cbackground-color%2Cnesting%2Cbottom%2Csans-serif%2Cperiod%2Cpound+sign%2C%EF%B9%A4body%EF%B9%A5%2C%EF%B9%A4ul%EF%B9%A5%2C%EF%B9%A4h1%EF%B9%A5%2Cmargin%2C%3C++%3E%2C{+}%2C%EF%B9%A4p%EF%B9%A5%2C%EF%B9%A4!DOCTYPE+html%EF%B9%A5%2C%EF%B9%A4head%EF%B9%A5%2Ccolon%2C%EF%B9%A4style%EF%B9%A5%2C.html%2CHTML%2CCSS%2CJavaScript%2Cborder&freespace=true&freespaceValue=Web+Design+Master&freespaceRandom=false&width=5&height=5&number=35#results
+
+        var data = [
+                    {"label":"Nagrada 1",  "value":1,  "Nagrada":"2x Tequila Shots"}, // padding
+                    {"label":"Nagrada 2",  "value":1,  "Nagrada":"Free Drink"}, //font-family
+                    {"label":"Nagrada 3",  "value":1,  "Nagrada":"Maconka"}, //color
+                    {"label":"Nagrada 4",  "value":1,  "Nagrada":"Free Coffee"}, //font-weight
+                    {"label":"Nagrada 5",  "value":1,  "Nagrada":"Laze gives you a kiss"}, //font-size
+                    {"label":"Nagrada 6",  "value":1,  "Nagrada":"Jelen Pivo"}, //background-color
+                    {"label":"Nagrada 7",  "value":1,  "Nagrada":"Wise words of Stevo Kriminal"}, //nesting
+                    {"label":"Nagrada 8",  "value":1,  "Nagrada":"Request a song"}, //bottom
+                    {"label":"Nagrada 9",  "value":1,  "Nagrada":"10 Skleka"}, //sans-serif
+                    {"label":"Nagrada 10", "value":1, "Nagrada":"Mystery Prize"}, //period
+                    {"label":"Nagrada 11", "value":1, "Nagrada":"Nothing"}, //pound sign
+                    {"label":"Nagrada 12", "value":1, "Nagrada":"Spin again"}, //<body>
+        ];
+
+
+        var svg = d3.select('#chart')
+            .append("svg")
+            .data([data])
+            .attr("width",  w + padding.left + padding.right)
+            .attr("height", h + padding.top + padding.bottom);
+
+        var container = svg.append("g")
+            .attr("class", "chartholder")
+            .attr("transform", "translate(" + (w/2 + padding.left) + "," + (h/2 + padding.top) + ")");
+
+        var vis = container
+            .append("g");
+            
+        var pie = d3.layout.pie().sort(null).value(function(d){return 1;});
+
+        // declare an arc generator function
+        var arc = d3.svg.arc().outerRadius(r);
+
+        // select paths, use arc generator to draw
+        var arcs = vis.selectAll("g.slice")
+            .data(pie)
+            .enter()
+            .append("g")
+            .attr("class", "slice");
+            
+
+        arcs.append("path")
+            .attr("fill", function(d, i){ return color(i); })
+            .attr("d", function (d) { return arc(d); });
+
+        // add the text
+        arcs.append("text").attr("transform", function(d){
+                d.innerRadius = 0;
+                d.outerRadius = r;
+                d.angle = (d.startAngle + d.endAngle)/2;
+                return "rotate(" + (d.angle * 180 / Math.PI - 90) + ")translate(" + (d.outerRadius -10) +")";
+            })
+            .attr("text-anchor", "end")
+            .text( function(d, i) {
+                return data[i].label;
+            });
+
+        container.on("click", spin);
+
+
+        function spin(d){
+            
+            container.on("click", null);
+
+            //all slices have been seen, all done
+            /*console.log("OldPick: " + oldpick.length, "Data length: " + data.length);
+            if(oldpick.length == data.length){
+                console.log("done");
+                container.on("click", null);
+                return;
+            }*/
+
+            var  ps       = 360/data.length,
+                 pieslice = Math.round(1440/data.length),
+                 rng      = Math.floor((Math.random() * 1440) + 360);
+                
+            rotation = (Math.round(rng / ps) * ps);
+            
+            picked = Math.round(data.length - (rotation % 360)/ps);
+            picked = picked >= data.length ? (picked % data.length) : picked;
+
+
+            if(oldpick.indexOf(picked) !== -1){
+                d3.select(this).call(spin);
+                return;
+            } else {
+                oldpick.push(picked);
+            }
+
+            rotation += 90 - Math.round(ps/2);
+
+            vis.transition()
+                .duration(3000)
+                .attrTween("transform", rotTween)
+                .each("end", function(){
+
+                    //mark Nagrada as seen
+                    //d3.select(".slice:nth-child(" + (picked + 1) + ") path")
+                    //    .attr("fill", "#111");
+
+                    //populate Nagrada
+                    d3.select("#Nagrada h1")
+                        .text(data[picked].Nagrada);
+
+                    oldrotation = rotation;
+                
+                    container.on("click", spin);
+                });
+        }
+
+        //make arrow
+        svg.append("g")
+            .attr("transform", "translate(" + (w + padding.left + padding.right) + "," + ((h/2)+padding.top) + ")")
+            .append("path")
+            .attr("d", "M-" + (r*.15) + ",0L0," + (r*.05) + "L0,-" + (r*.05) + "Z")
+            .style({"fill":"black"});
+
+        //draw spin circle
+        container.append("circle")
+            .attr("cx", 0)
+            .attr("cy", 0)
+            .attr("r", 60)
+            .style({"fill":"white","cursor":"pointer"});
+
+        //spin text
+        container.append("text")
+            .attr("x", 0)
+            .attr("y", 15)
+            .attr("text-anchor", "middle")
+            .text("SPIN")
+            .style({"font-weight":"bold", "font-size":"30px"});
+        
+        
+        function rotTween(to) {
+          var i = d3.interpolate(oldrotation % 360, rotation);
+          return function(t) {
+            return "rotate(" + i(t) + ")";
+          };
+        }
+        
+        
+        function getRandomNumbers(){
+            var array = new Uint16Array(1000);
+            var scale = d3.scale.linear().range([360, 1440]).domain([0, 100000]);
+
+            if(window.hasOwnProperty("crypto") && typeof window.crypto.getRandomValues === "function"){
+                window.crypto.getRandomValues(array);
+                console.log("works");
+            } else {
+                //no support for crypto, get crappy random numbers
+                for(var i=0; i < 1000; i++){
+                    array[i] = Math.floor(Math.random() * 100000) + 1;
+                }
+            }
+
+            return array;
+        }
+
+    </script>
+    <script>
+        var canvas = document.createElement("canvas");
+        var width = canvas.width = window.innerWidth * 0.75;
+        var height = canvas.height = window.innerHeight * 0.75;
+        document.body.appendChild(canvas);
+        var gl = canvas.getContext('webgl');
+
+        var mouse = {x: 0, y: 0};
+
+        var numMetaballs = 30;
+        var metaballs = [];
+
+        for (var i = 0; i < numMetaballs; i++) {
+        var radius = Math.random() * 60 + 10;
+        metaballs.push({
+            x: Math.random() * (width - 2 * radius) + radius,
+            y: Math.random() * (height - 2 * radius) + radius,
+            vx: (Math.random() - 0.5) * 3,
+            vy: (Math.random() - 0.5) * 3,
+            r: radius * 0.75
+        });
+        }
+
+        var vertexShaderSrc = `
+        attribute vec2 position;
+
+        void main() {
+        // position specifies only x and y.
+        // We set z to be 0.0, and w to be 1.0
+        gl_Position = vec4(position, 0.0, 1.0);
+        }
+        `;
+
+        var fragmentShaderSrc = `
+        precision highp float;
+
+        const float WIDTH = ` + (width >> 0) + `.0;
+        const float HEIGHT = ` + (height >> 0) + `.0;
+
+        uniform vec3 metaballs[` + numMetaballs + `];
+
+        void main(){
+        float x = gl_FragCoord.x;
+        float y = gl_FragCoord.y;
+
+        float sum = 0.0;
+        for (int i = 0; i < ` + numMetaballs + `; i++) {
+        vec3 metaball = metaballs[i];
+        float dx = metaball.x - x;
+        float dy = metaball.y - y;
+        float radius = metaball.z;
+
+        sum += (radius * radius) / (dx * dx + dy * dy);
+        }
+
+        if (sum >= 0.99) {
+        gl_FragColor = vec4(mix(vec3(x / WIDTH, y / HEIGHT, 1.0), vec3(0, 0, 0), max(0.0, 1.0 - (sum - 0.99) * 100.0)), 1.0);
+        return;
+        }
+
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        }
+
+        `;
+
+        var vertexShader = compileShader(vertexShaderSrc, gl.VERTEX_SHADER);
+        var fragmentShader = compileShader(fragmentShaderSrc, gl.FRAGMENT_SHADER);
+
+        var program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        var vertexData = new Float32Array([
+        -1.0,  1.0, // top left
+        -1.0, -1.0, // bottom left
+        1.0,  1.0, // top right
+        1.0, -1.0, // bottom right
+        ]);
+        var vertexDataBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexDataBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
+
+        var positionHandle = getAttribLocation(program, 'position');
+        gl.enableVertexAttribArray(positionHandle);
+        gl.vertexAttribPointer(positionHandle,
+                            2, // position is a vec2
+                            gl.FLOAT, // each component is a float
+                            gl.FALSE, // don't normalize values
+                            2 * 4, // two 4 byte float components per vertex
+                            0 // offset into each span of vertex data
+                            );
+
+        var metaballsHandle = getUniformLocation(program, 'metaballs');
+
+        loop();
+        function loop() {
+        for (var i = 0; i < numMetaballs; i++) {
+            var metaball = metaballs[i];
+            metaball.x += metaball.vx;
+            metaball.y += metaball.vy;
+
+            if (metaball.x < metaball.r || metaball.x > width - metaball.r) metaball.vx *= -1;
+            if (metaball.y < metaball.r || metaball.y > height - metaball.r) metaball.vy *= -1;
+        }
+
+        var dataToSendToGPU = new Float32Array(3 * numMetaballs);
+        for (var i = 0; i < numMetaballs; i++) {
+            var baseIndex = 3 * i;
+            var mb = metaballs[i];
+            dataToSendToGPU[baseIndex + 0] = mb.x;
+            dataToSendToGPU[baseIndex + 1] = mb.y;
+            dataToSendToGPU[baseIndex + 2] = mb.r;
+        }
+        gl.uniform3fv(metaballsHandle, dataToSendToGPU);
+        
+        //Draw
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        requestAnimationFrame(loop);
+        }
+
+        function compileShader(shaderSource, shaderType) {
+        var shader = gl.createShader(shaderType);
+        gl.shaderSource(shader, shaderSource);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            throw "Shader compile failed with: " + gl.getShaderInfoLog(shader);
+        }
+
+        return shader;
+        }
+
+        function getUniformLocation(program, name) {
+        var uniformLocation = gl.getUniformLocation(program, name);
+        if (uniformLocation === -1) {
+            throw 'Can not find uniform ' + name + '.';
+        }
+        return uniformLocation;
+        }
+
+        function getAttribLocation(program, name) {
+        var attributeLocation = gl.getAttribLocation(program, name);
+        if (attributeLocation === -1) {
+            throw 'Can not find attribute ' + name + '.';
+        }
+        return attributeLocation;
+        }
+
+        canvas.onmousemove = function(e) {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        }
+    </script>
+</body>
+</html>
